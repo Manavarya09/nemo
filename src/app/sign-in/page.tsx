@@ -30,7 +30,6 @@ export default function SignInPage() {
         email: formData.email,
         password: formData.password,
         rememberMe: formData.rememberMe,
-        callbackURL: "/",
       });
 
       if (error?.code) {
@@ -39,9 +38,12 @@ export default function SignInPage() {
         return;
       }
 
-      setIsLoading(false);
       toast.success("Welcome back! 💖");
-      router.push("/");
+      
+      // Wait for session cookie to be set before redirecting
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
     } catch (error) {
       setIsLoading(false);
       toast.error("Something went wrong. Please try again.");
