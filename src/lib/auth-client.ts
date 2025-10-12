@@ -1,4 +1,3 @@
-
 "use client"
 import { createAuthClient } from "better-auth/react"
 import { useEffect, useState } from "react"
@@ -19,7 +18,12 @@ export const authClient = createAuthClient({
   }
 });
 
-type SessionData = ReturnType<typeof authClient.useSession>
+interface SessionData {
+  data: any;
+  isPending: boolean;
+  error: any;
+  refetch: () => void;
+}
 
 export function useSession(): SessionData {
    const [session, setSession] = useState<any>(null);
