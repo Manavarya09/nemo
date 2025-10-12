@@ -34,16 +34,17 @@ export default function SignInPage() {
       });
 
       if (error?.code) {
+        setIsLoading(false);
         toast.error("Invalid email or password. Please make sure you have already registered an account and try again.");
         return;
       }
 
+      setIsLoading(false);
       toast.success("Welcome back! 💖");
       router.push("/");
     } catch (error) {
-      toast.error("Something went wrong. Please try again.");
-    } finally {
       setIsLoading(false);
+      toast.error("Something went wrong. Please try again.");
     }
   };
 
