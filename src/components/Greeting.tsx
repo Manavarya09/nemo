@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { Heart, Sparkles } from "lucide-react";
+import { useSession } from "@/lib/auth-client";
 
 export default function Greeting() {
   const [greeting, setGreeting] = useState("");
-  const [name] = useState("Bestie");
+  const { data: session } = useSession();
+  const name = session?.user?.name || "Bestie";
 
   useEffect(() => {
     const hour = new Date().getHours();
