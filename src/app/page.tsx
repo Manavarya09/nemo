@@ -75,7 +75,7 @@ export default function Home() {
 
         <div className="mt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            Made with 💖 for my best friend
+            Made with 💖 for Kittu
           </p>
         </div>
       </div>
