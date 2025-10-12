@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import { Calendar, Flower2, Heart, Sparkles, Info, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar, Flower2, Heart, Sparkles, Info, ChevronLeft, ChevronRight, TrendingUp, Edit, AlertCircle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import confetti from "canvas-confetti";
 
 interface CycleData {
@@ -32,6 +34,8 @@ interface DailyLog {
 export default function CycleTracker() {
   const [isSetup, setIsSetup] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [cycleData, setCycleData] = useState<CycleData>({
     lastPeriodStart: "",
     periodLength: 5,
@@ -40,6 +44,7 @@ export default function CycleTracker() {
   const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showDailyLog, setShowDailyLog] = useState(false);
+  const [showEditSetup, setShowEditSetup] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [todayLog, setTodayLog] = useState<DailyLog>({
     date: new Date().toISOString().split("T")[0],
@@ -59,14 +64,18 @@ export default function CycleTracker() {
 
   const fetchCycleData = async () => {
     try {
+      setError(null);
       const response = await fetch("/api/cycle-data");
       if (response.ok) {
         const data = await response.json();
         setCycleData(data);
         setIsSetup(true);
+      } else if (response.status === 404) {
+        setIsSetup(false);
       }
     } catch (error) {
       console.error("Error fetching cycle data:", error);
+      setError("Failed to load cycle data. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -101,11 +110,20 @@ export default function CycleTracker() {
   };
 
   const saveCycleData = async (data: CycleData) => {
+    if (!data.lastPeriodStart) {
+      toast.error("Please select your last period start date");
+      return;
+    }
+
+    setSaving(true);
     try {
       const isoDate = new Date(data.lastPeriodStart + "T00:00:00.000Z").toISOString();
       
-      const response = await fetch("/api/cycle-data", {
-        method: "POST",
+      const method = data.id ? "PUT" : "POST";
+      const url = data.id ? `/api/cycle-data?id=${data.id}` : "/api/cycle-data";
+      
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
@@ -117,19 +135,28 @@ export default function CycleTracker() {
         const saved = await response.json();
         setCycleData(saved);
         setIsSetup(true);
+        setShowEditSetup(false);
+        toast.success("Cycle tracking updated! 🌸");
         confetti({
           particleCount: 100,
           spread: 70,
           origin: { y: 0.6 },
           colors: ["#f4a6c8", "#e8d5f2", "#c8e6f5"],
         });
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Failed to save cycle data");
       }
     } catch (error) {
       console.error("Error saving cycle data:", error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
   const saveDailyLog = async () => {
+    setSaving(true);
     try {
       const logData = {
         date: todayLog.date,
@@ -143,21 +170,30 @@ export default function CycleTracker() {
       };
 
       if (todayLog.id) {
-        await fetch(`/api/cycle-logs?id=${todayLog.id}`, {
+        const response = await fetch(`/api/cycle-logs?id=${todayLog.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(logData),
         });
+        
+        if (!response.ok) {
+          throw new Error("Failed to update log");
+        }
       } else {
-        await fetch("/api/cycle-logs", {
+        const response = await fetch("/api/cycle-logs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(logData),
         });
+        
+        if (!response.ok) {
+          throw new Error("Failed to create log");
+        }
       }
 
       await fetchDailyLogs();
       setShowDailyLog(false);
+      toast.success("Daily log saved! 💖");
       confetti({
         particleCount: 50,
         spread: 60,
@@ -166,14 +202,27 @@ export default function CycleTracker() {
       });
     } catch (error) {
       console.error("Error saving daily log:", error);
+      toast.error("Failed to save log. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
   const calculateNextPeriod = () => {
     if (!cycleData.lastPeriodStart) return null;
     const lastPeriod = new Date(cycleData.lastPeriodStart);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    lastPeriod.setHours(0, 0, 0, 0);
+    
+    // Calculate how many full cycles have passed
+    const daysSinceLastPeriod = Math.floor((today.getTime() - lastPeriod.getTime()) / (1000 * 60 * 60 * 24));
+    const cyclesPassed = Math.floor(daysSinceLastPeriod / cycleData.cycleLength);
+    
+    // Calculate next period date
     const nextPeriod = new Date(lastPeriod);
-    nextPeriod.setDate(lastPeriod.getDate() + cycleData.cycleLength);
+    nextPeriod.setDate(lastPeriod.getDate() + ((cyclesPassed + 1) * cycleData.cycleLength));
+    
     return nextPeriod;
   };
 
@@ -181,7 +230,6 @@ export default function CycleTracker() {
     const nextPeriod = calculateNextPeriod();
     if (!nextPeriod) return null;
     const ovulation = new Date(nextPeriod);
-    // Ovulation typically occurs 14 days before next period
     ovulation.setDate(nextPeriod.getDate() - 14);
     return ovulation;
   };
@@ -203,7 +251,8 @@ export default function CycleTracker() {
     lastPeriod.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
     const daysSinceStart = Math.floor((today.getTime() - lastPeriod.getTime()) / (1000 * 60 * 60 * 24));
-    return (daysSinceStart % cycleData.cycleLength) + 1;
+    const cycleDay = (daysSinceStart % cycleData.cycleLength);
+    return cycleDay === 0 ? cycleData.cycleLength : cycleDay;
   };
 
   const getCurrentPhase = () => {
@@ -220,31 +269,31 @@ export default function CycleTracker() {
     const phaseData = {
       menstruation: {
         emoji: "🌸",
-        color: "pink",
+        color: "from-pink-100 to-rose-100",
         message: "Rest & restore. Your body is doing amazing work.",
-        tips: "Stay hydrated, use a heating pad for cramps, get extra rest",
+        tips: "Stay hydrated, use a heating pad for cramps, get extra rest, gentle yoga or stretching",
       },
       follicular: {
         emoji: "🌱",
-        color: "green",
+        color: "from-emerald-100 to-green-100",
         message: "Rising energy! Perfect time for new challenges.",
-        tips: "Great time to start new projects, high energy for workouts",
+        tips: "Great time to start new projects, high energy for workouts, try HIIT or strength training",
       },
       ovulation: {
         emoji: "✨",
-        color: "purple",
+        color: "from-purple-100 to-violet-100",
         message: "Peak energy & glow! You're absolutely radiant.",
-        tips: "Most fertile days, peak confidence and communication",
+        tips: "Most fertile days, peak confidence and communication, great for social activities",
       },
       luteal: {
         emoji: "🌙",
-        color: "blue",
+        color: "from-blue-100 to-indigo-100",
         message: "Nurture yourself. Self-care is your priority.",
-        tips: "Focus on gentle activities, manage PMS symptoms, rest more",
+        tips: "Focus on gentle activities, manage PMS symptoms, rest more, practice mindfulness",
       },
       unknown: {
         emoji: "💗",
-        color: "pink",
+        color: "from-pink-50 to-purple-50",
         message: "Track your cycle to get personalized insights",
         tips: "Set up your cycle tracking to receive helpful tips",
       },
@@ -259,7 +308,15 @@ export default function CycleTracker() {
     date.setHours(0, 0, 0, 0);
     
     const diff = Math.floor((date.getTime() - lastPeriod.getTime()) / (1000 * 60 * 60 * 24));
-    const cycleDay = ((diff % cycleData.cycleLength) + cycleData.cycleLength) % cycleData.cycleLength;
+    
+    if (diff < 0) {
+      const cyclesBack = Math.ceil(Math.abs(diff) / cycleData.cycleLength);
+      const adjustedDiff = diff + (cyclesBack * cycleData.cycleLength);
+      const cycleDay = ((adjustedDiff % cycleData.cycleLength) + cycleData.cycleLength) % cycleData.cycleLength;
+      return cycleDay < cycleData.periodLength;
+    }
+    
+    const cycleDay = diff % cycleData.cycleLength;
     return cycleDay < cycleData.periodLength;
   };
 
@@ -270,7 +327,6 @@ export default function CycleTracker() {
     date.setHours(0, 0, 0, 0);
     
     const diff = Math.floor((date.getTime() - ovulation.getTime()) / (1000 * 60 * 60 * 24));
-    // Fertile window: 5 days before ovulation + ovulation day
     return diff >= -5 && diff <= 0;
   };
 
@@ -292,7 +348,7 @@ export default function CycleTracker() {
 
     const days = [];
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="h-10" />);
+      days.push(<div key={`empty-${i}`} className="h-12" />);
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -301,20 +357,25 @@ export default function CycleTracker() {
       const isFertile = isFertileDay(date);
       const isOvulation = isOvulationDay(date);
       const isToday = date.toDateString() === new Date().toDateString();
+      const hasLog = dailyLogs.some(log => log.date === date.toISOString().split("T")[0]);
 
       days.push(
         <div
           key={day}
-          className={`h-10 flex items-center justify-center rounded-full text-sm relative transition-all ${
-            isToday ? "ring-2 ring-pink-400 font-bold" : ""
+          className={`h-12 flex flex-col items-center justify-center rounded-lg text-sm relative transition-all ${
+            isToday ? "ring-2 ring-pink-500 font-bold shadow-md" : ""
           } ${isPeriod ? "bg-pink-200 text-pink-900" : ""} ${
             isFertile && !isPeriod ? "bg-emerald-100 text-emerald-900" : ""
-          } ${isOvulation ? "bg-purple-200 text-purple-900 font-bold" : ""}`}
+          } ${isOvulation ? "bg-purple-200 text-purple-900 font-bold" : ""}
+          ${!isPeriod && !isFertile && !isOvulation ? "hover:bg-gray-50" : ""}`}
         >
-          {day}
-          {isPeriod && <span className="absolute -bottom-1 text-xs">🌸</span>}
-          {isFertile && !isPeriod && <span className="absolute -bottom-1 text-xs">💚</span>}
-          {isOvulation && <span className="absolute -top-1 text-xs">✨</span>}
+          <span className={isToday ? "text-base" : ""}>{day}</span>
+          <div className="flex gap-0.5 mt-0.5">
+            {isPeriod && <span className="text-xs">🌸</span>}
+            {isFertile && !isPeriod && <span className="text-xs">💚</span>}
+            {isOvulation && <span className="text-xs">✨</span>}
+            {hasLog && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-purple-500 rounded-full"></span>}
+          </div>
         </div>
       );
     }
@@ -326,9 +387,24 @@ export default function CycleTracker() {
     return (
       <Card className="bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50 border-pink-200">
         <CardHeader>
-          <div className="animate-pulse">
-            <div className="h-6 bg-pink-200 rounded mb-2 w-1/2"></div>
-            <div className="h-4 bg-pink-200 rounded w-3/4"></div>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
+          </div>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50 border-pink-200">
+        <CardHeader>
+          <div className="flex flex-col items-center justify-center py-8 space-y-3">
+            <AlertCircle className="w-8 h-8 text-red-500" />
+            <p className="text-sm text-red-600">{error}</p>
+            <Button onClick={() => window.location.reload()} variant="outline" size="sm">
+              Retry
+            </Button>
           </div>
         </CardHeader>
       </Card>
@@ -341,15 +417,17 @@ export default function CycleTracker() {
   const phaseInfo = getPhaseInfo(phase);
   const cycleDay = getCurrentCycleDay();
 
-  if (!isSetup) {
+  if (!isSetup || showEditSetup) {
     return (
       <Card className="bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50 border-pink-200 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-pink-700">
             <Flower2 className="w-5 h-5" />
-            Cycle Tracker 🌸
+            {showEditSetup ? "Edit Cycle Settings" : "Cycle Tracker 🌸"}
           </CardTitle>
-          <CardDescription>Let's set up your personalized cycle tracking</CardDescription>
+          <CardDescription>
+            {showEditSetup ? "Update your cycle information" : "Let's set up your personalized cycle tracking"}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="space-y-2">
@@ -359,7 +437,7 @@ export default function CycleTracker() {
             <Input
               id="lastPeriod"
               type="date"
-              value={cycleData.lastPeriodStart}
+              value={cycleData.lastPeriodStart ? cycleData.lastPeriodStart.split("T")[0] : ""}
               onChange={(e) => setCycleData({ ...cycleData, lastPeriodStart: e.target.value })}
               className="bg-white border-pink-200"
               max={new Date().toISOString().split("T")[0]}
@@ -377,7 +455,7 @@ export default function CycleTracker() {
                 min="3"
                 max="10"
                 value={cycleData.periodLength}
-                onChange={(e) => setCycleData({ ...cycleData, periodLength: parseInt(e.target.value) })}
+                onChange={(e) => setCycleData({ ...cycleData, periodLength: parseInt(e.target.value) || 5 })}
                 className="bg-white border-pink-200"
               />
             </div>
@@ -392,7 +470,7 @@ export default function CycleTracker() {
                 min="21"
                 max="40"
                 value={cycleData.cycleLength}
-                onChange={(e) => setCycleData({ ...cycleData, cycleLength: parseInt(e.target.value) })}
+                onChange={(e) => setCycleData({ ...cycleData, cycleLength: parseInt(e.target.value) || 28 })}
                 className="bg-white border-pink-200"
               />
             </div>
@@ -405,14 +483,34 @@ export default function CycleTracker() {
             </p>
           </div>
 
-          <Button
-            onClick={() => saveCycleData(cycleData)}
-            disabled={!cycleData.lastPeriodStart}
-            className="w-full bg-pink-500 hover:bg-pink-600"
-          >
-            <Flower2 className="w-4 h-4 mr-2" />
-            Start Tracking
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => saveCycleData(cycleData)}
+              disabled={!cycleData.lastPeriodStart || saving}
+              className="flex-1 bg-pink-500 hover:bg-pink-600"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Flower2 className="w-4 h-4 mr-2" />
+                  {showEditSetup ? "Update" : "Start Tracking"}
+                </>
+              )}
+            </Button>
+            {showEditSetup && (
+              <Button
+                onClick={() => setShowEditSetup(false)}
+                variant="outline"
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
     );
@@ -455,7 +553,7 @@ export default function CycleTracker() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-7 gap-1 mb-4">
+          <div className="grid grid-cols-7 gap-2 mb-4">
             {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
               <div key={day} className="text-center text-xs font-semibold text-muted-foreground">
                 {day}
@@ -477,6 +575,12 @@ export default function CycleTracker() {
               <div className="w-6 h-6 bg-purple-200 rounded-full flex items-center justify-center">✨</div>
               <span className="text-purple-900 font-medium">Ovulation day</span>
             </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-gray-50 rounded-full flex items-center justify-center relative">
+                <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+              </div>
+              <span className="text-gray-900 font-medium">Has daily log</span>
+            </div>
           </div>
 
           <Button onClick={() => setShowCalendar(false)} variant="outline" className="w-full mt-4">
@@ -497,7 +601,7 @@ export default function CycleTracker() {
           </CardTitle>
           <CardDescription>How are you feeling today?</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
           <div className="bg-white/60 backdrop-blur rounded-lg p-4 space-y-3">
             <Label className="text-sm font-semibold flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-pink-500" />
@@ -594,12 +698,32 @@ export default function CycleTracker() {
             </div>
           </div>
 
+          <div className="bg-white/60 backdrop-blur rounded-lg p-4 space-y-2">
+            <Label className="text-sm font-semibold">Notes (optional)</Label>
+            <Textarea
+              placeholder="Any additional thoughts or observations..."
+              value={todayLog.notes}
+              onChange={(e) => setTodayLog({ ...todayLog, notes: e.target.value })}
+              className="resize-none"
+              rows={3}
+            />
+          </div>
+
           <div className="flex gap-2">
-            <Button onClick={saveDailyLog} className="flex-1 bg-pink-500 hover:bg-pink-600">
-              <Heart className="w-4 h-4 mr-2" />
-              Save
+            <Button onClick={saveDailyLog} disabled={saving} className="flex-1 bg-pink-500 hover:bg-pink-600">
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Heart className="w-4 h-4 mr-2" />
+                  Save
+                </>
+              )}
             </Button>
-            <Button onClick={() => setShowDailyLog(false)} variant="outline" className="flex-1">
+            <Button onClick={() => setShowDailyLog(false)} variant="outline" disabled={saving} className="flex-1">
               Cancel
             </Button>
           </div>
@@ -611,18 +735,25 @@ export default function CycleTracker() {
   return (
     <Card className="bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50 border-pink-200 shadow-lg">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-pink-700">
-          <Flower2 className="w-5 h-5" />
-          Cycle Tracker
-        </CardTitle>
-        <CardDescription className="flex items-center gap-1">
-          <span className="text-xl">{phaseInfo.emoji}</span>
-          <span>{phaseInfo.message}</span>
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-pink-700">
+              <Flower2 className="w-5 h-5" />
+              Cycle Tracker
+            </CardTitle>
+            <CardDescription className="flex items-center gap-1 mt-1">
+              <span className="text-xl">{phaseInfo.emoji}</span>
+              <span>{phaseInfo.message}</span>
+            </CardDescription>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setShowEditSetup(true)}>
+            <Edit className="w-4 h-4" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Phase Progress */}
-        <div className="bg-white/70 backdrop-blur rounded-2xl p-4 space-y-3">
+        <div className={`bg-gradient-to-br ${phaseInfo.color} rounded-2xl p-4 space-y-3 border-2 border-white/50 shadow-sm`}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Current Phase</p>
@@ -646,10 +777,10 @@ export default function CycleTracker() {
 
         {/* Next Period Prediction */}
         {nextPeriod && daysUntil !== null && (
-          <div className={`rounded-2xl p-4 ${
+          <div className={`rounded-2xl p-4 border-2 ${
             daysUntil <= 3 && daysUntil > 0
-              ? "bg-pink-100 border-2 border-pink-300"
-              : "bg-white/70 backdrop-blur"
+              ? "bg-pink-100 border-pink-300 shadow-md"
+              : "bg-white/70 backdrop-blur border-white/50"
           }`}>
             <div className="flex items-center justify-between">
               <div>
@@ -668,7 +799,7 @@ export default function CycleTracker() {
               </div>
             </div>
             {daysUntil <= 3 && daysUntil > 0 && (
-              <p className="text-sm text-pink-800 mt-2 text-center">
+              <p className="text-sm text-pink-800 mt-2 text-center font-medium">
                 🌸 Your period is coming soon. Be extra kind to yourself!
               </p>
             )}
@@ -676,12 +807,12 @@ export default function CycleTracker() {
         )}
 
         {/* Tips for current phase */}
-        <div className="bg-white/70 backdrop-blur rounded-2xl p-4">
+        <div className="bg-white/70 backdrop-blur rounded-2xl p-4 border-2 border-white/50">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-4 h-4 text-purple-500" />
             <p className="text-sm font-semibold text-purple-700">Phase Tips</p>
           </div>
-          <p className="text-xs text-muted-foreground">{phaseInfo.tips}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{phaseInfo.tips}</p>
         </div>
 
         {/* Action Buttons */}
@@ -698,37 +829,25 @@ export default function CycleTracker() {
 
         {/* Insights */}
         {dailyLogs.length > 0 && (
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-3 space-y-2 border border-purple-200">
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-3 space-y-2 border-2 border-purple-200/50">
             <div className="flex items-center gap-2 text-sm font-semibold text-purple-700">
               <TrendingUp className="w-4 h-4" />
-              Insights
+              Your Insights
             </div>
             <div className="space-y-1 text-xs text-muted-foreground">
-              <p>📊 {dailyLogs.length} days logged</p>
+              <p>📊 {dailyLogs.length} days logged this cycle</p>
               {dailyLogs.filter((l) => l.cramps === 1).length > 0 && (
-                <p>💫 Cramps logged {dailyLogs.filter((l) => l.cramps === 1).length} times - stay hydrated!</p>
+                <p>💫 Tracked cramps on {dailyLogs.filter((l) => l.cramps === 1).length} days - stay hydrated!</p>
               )}
               {dailyLogs.filter((l) => l.mood === "happy").length > 0 && (
-                <p>✨ {dailyLogs.filter((l) => l.mood === "happy").length} happy days tracked!</p>
+                <p>✨ {dailyLogs.filter((l) => l.mood === "happy").length} happy days - you're doing great!</p>
+              )}
+              {dailyLogs.filter((l) => l.energy === "high").length > 0 && (
+                <p>⚡ {dailyLogs.filter((l) => l.energy === "high").length} high energy days - keep it up!</p>
               )}
             </div>
           </div>
         )}
-
-        <Button
-          onClick={async () => {
-            if (cycleData.id) {
-              await fetch(`/api/cycle-data?id=${cycleData.id}`, { method: "DELETE" });
-            }
-            setIsSetup(false);
-            setCycleData({ lastPeriodStart: "", periodLength: 5, cycleLength: 28 });
-          }}
-          variant="ghost"
-          size="sm"
-          className="w-full text-xs text-muted-foreground hover:text-pink-700"
-        >
-          Reset Tracking
-        </Button>
       </CardContent>
     </Card>
   );
