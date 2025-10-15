@@ -78,25 +78,68 @@ export default function ComplimentCamera() {
 
   const openCamera = async () => {
     setCameraError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: "user",
+
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      const message = "Camera access is not supported on this device or browser.";
+      setCameraError(message);
+      toast.error(message);
+      return;
+    }
+
+    stopCamera();
+
+    const constraintsList: MediaStreamConstraints[] = [
+      {
+        video: {
+          facingMode: { ideal: "user" },
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 720 },
         },
         audio: false,
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setIsCameraOpen(true);
+      },
+      {
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      },
+      { video: true, audio: false },
+    ];
+
+    let stream: MediaStream | null = null;
+    let lastError: unknown;
+
+    for (const constraints of constraintsList) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        break;
+      } catch (error) {
+        lastError = error;
       }
-    } catch (error) {
-      console.error("Error accessing camera:", error);
+    }
+
+    if (!stream) {
+      console.error("Error accessing camera:", lastError);
       setCameraError("Unable to access camera. Please check permissions and try again.");
       toast.error("Camera access denied");
+      return;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.setAttribute("playsinline", "true");
+      streamRef.current = stream;
+
+      try {
+        await videoRef.current.play();
+      } catch (error) {
+        console.error("Error starting video playback:", error);
+      }
+
+      setIsCameraOpen(true);
+      setCameraError(null);
     }
   };
 
