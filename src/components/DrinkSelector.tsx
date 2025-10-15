@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Coffee } from "lucide-react";
 import confetti from "canvas-confetti";
-import { OptionWheel } from "@/components/OptionWheel";
+import { OptionWheel, WheelSegment, createWheelSlices } from "@/components/OptionWheel";
 
-const drinkOptions = [
-  "Sprite",
-  "Blue Sprite",
-  "Sprite Zero",
-  "Sprite Ice",
-  "7Up",
-  "Lemonade",
+const drinkSegments: WheelSegment[] = [
+  { label: "Sprite" },
+  { label: "Blue Sprite" },
+  { label: "Sprite Zero" },
+  { label: "Sprite Ice" },
+  { label: "7Up" },
+  { label: "Lemonade" },
 ];
 
 const drinkPalette = [
@@ -31,20 +31,36 @@ export default function DrinkSelector() {
   const [rotation, setRotation] = useState(0);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const timeoutRef = useRef<number>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const slices = useMemo(() => createWheelSlices(drinkSegments), []);
+  const totalWeight = useMemo(
+    () => slices.reduce((sum, slice) => sum + slice.weight, 0),
+    [slices],
+  );
 
   const startSelecting = () => {
-    if (selecting) {
+    if (selecting || slices.length === 0) {
       return;
     }
 
-    const segmentAngle = 360 / drinkOptions.length;
-    const selectedIndex = Math.floor(Math.random() * drinkOptions.length);
-    const targetCenter = selectedIndex * segmentAngle + segmentAngle / 2;
-    const currentNormalized = ((rotation % 360) + 360) % 360;
-    const desiredNormalized = (360 - targetCenter + 360) % 360;
+    const randomValue = Math.random() * totalWeight;
+    let cumulative = 0;
+    let chosenIndex = slices.length - 1;
 
+    for (let index = 0; index < slices.length; index += 1) {
+      cumulative += slices[index].weight;
+      if (randomValue <= cumulative) {
+        chosenIndex = index;
+        break;
+      }
+    }
+
+    const targetSlice = slices[chosenIndex];
+    const currentNormalized = ((rotation % 360) + 360) % 360;
+    const desiredNormalized = (360 - targetSlice.centerAngle + 360) % 360;
     let delta = desiredNormalized - currentNormalized;
+
     if (delta <= 0) {
       delta += 360;
     }
@@ -53,32 +69,29 @@ export default function DrinkSelector() {
     const nextRotation = rotation + extraSpins * 360 + delta;
 
     if (timeoutRef.current) {
-      window.clearTimeout(timeoutRef.current);
+      clearTimeout(timeoutRef.current);
     }
 
     setSelecting(true);
     setSelected(null);
     setRotation(nextRotation);
 
-    timeoutRef.current = window.setTimeout(() => {
-      const choice = drinkOptions[selectedIndex];
-      setSelected(choice);
+    timeoutRef.current = setTimeout(() => {
+      setSelected(targetSlice.label);
       setSelecting(false);
 
-      if (typeof window !== "undefined") {
-        confetti({
-          particleCount: 45,
-          spread: 60,
-          colors: ["#22d3ee", "#0ea5e9", "#c8f5d8"],
-        });
-      }
+      confetti({
+        particleCount: 45,
+        spread: 60,
+        colors: ["#22d3ee", "#0ea5e9", "#c8f5d8"],
+      });
     }, spinDuration);
   };
 
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current);
+        clearTimeout(timeoutRef.current);
       }
     };
   }, []);
@@ -91,7 +104,7 @@ export default function DrinkSelector() {
       </div>
 
       <OptionWheel
-        options={drinkOptions}
+        slices={slices}
         rotation={rotation}
         palette={drinkPalette}
         pointerColor="#06b6d4"
@@ -101,7 +114,7 @@ export default function DrinkSelector() {
 
       <div className="mt-6 text-center">
         {selecting && !selected && (
-          <p className="text-sm font-medium text-cyan-700 animate-pulse">
+          <p className="animate-pulse text-sm font-medium text-cyan-700">
             Shaking up something refreshing...
           </p>
         )}
