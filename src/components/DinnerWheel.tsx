@@ -97,8 +97,8 @@ export default function DinnerWheel() {
   }, []);
 
   return (
-    <Card className="rounded-3xl border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-red-50 p-6 shadow-md">
-      <div className="mb-4 flex items-center gap-2">
+    <Card className="rounded-3xl border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-red-50 p-6 shadow-md space-y-6">
+      <div className="flex items-center gap-2">
         <Utensils className="h-6 w-6 text-orange-500" />
         <h3 className="text-lg font-semibold text-orange-900">Dinner Wheel</h3>
       </div>
