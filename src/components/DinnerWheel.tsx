@@ -132,7 +132,7 @@ export default function DinnerWheel() {
       <Button
         onClick={startSpin}
         disabled={spinning}
-        className="mt-6 w-full bg-orange-400 text-white hover:bg-orange-500 disabled:opacity-60"
+        className="w-full bg-orange-400 text-white hover:bg-orange-500 disabled:opacity-60"
       >
         {spinning ? "Spinning..." : "Spin the Wheel!"}
       </Button>
