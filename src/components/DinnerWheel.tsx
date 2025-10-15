@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Utensils } from "lucide-react";
 import confetti from "canvas-confetti";
-import { OptionWheel } from "@/components/OptionWheel";
+import { OptionWheel, createWheelSlices, WheelSegment } from "@/components/OptionWheel";
 
-const dinnerOptions = [
-  "Aloo Paratha + Samosa Pav 🥔",
-  "Chole Bhature 🍛",
-  "Bhel Puri 🥗",
-  "Fries 🍟",
-  "Paneer Rice 🍚",
-  "Mess ka boring food 😑",
+const dinnerSegments: WheelSegment[] = [
+  { label: "Aloo Paratha + Samosa Pav 🥔", weight: 2 },
+  { label: "Chole Bhature 🍛", weight: 2 },
+  { label: "Bhel Puri 🥗", weight: 2 },
+  { label: "Fries 🍟", weight: 2 },
+  { label: "Paneer Rice 🍚", weight: 2 },
+  { label: "Mess ka boring food 😑", weight: 1 },
 ];
 
 const dinnerPalette = [
@@ -31,20 +31,36 @@ export default function DinnerWheel() {
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-  const timeoutRef = useRef<number>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const slices = useMemo(() => createWheelSlices(dinnerSegments), []);
+  const totalWeight = useMemo(
+    () => slices.reduce((sum, slice) => sum + slice.weight, 0),
+    [slices],
+  );
 
   const startSpin = () => {
-    if (spinning) {
+    if (spinning || slices.length === 0) {
       return;
     }
 
-    const segmentAngle = 360 / dinnerOptions.length;
-    const selectedIndex = Math.floor(Math.random() * dinnerOptions.length);
-    const targetCenter = selectedIndex * segmentAngle + segmentAngle / 2;
-    const currentNormalized = ((rotation % 360) + 360) % 360;
-    const desiredNormalized = (360 - targetCenter + 360) % 360;
+    const randomValue = Math.random() * totalWeight;
+    let cumulative = 0;
+    let chosenIndex = slices.length - 1;
 
+    for (let index = 0; index < slices.length; index += 1) {
+      cumulative += slices[index].weight;
+      if (randomValue <= cumulative) {
+        chosenIndex = index;
+        break;
+      }
+    }
+
+    const targetSlice = slices[chosenIndex];
+    const currentNormalized = ((rotation % 360) + 360) % 360;
+    const desiredNormalized = (360 - targetSlice.centerAngle + 360) % 360;
     let delta = desiredNormalized - currentNormalized;
+
     if (delta <= 0) {
       delta += 360;
     }
@@ -53,32 +69,29 @@ export default function DinnerWheel() {
     const nextRotation = rotation + extraSpins * 360 + delta;
 
     if (timeoutRef.current) {
-      window.clearTimeout(timeoutRef.current);
+      clearTimeout(timeoutRef.current);
     }
 
     setSpinning(true);
     setResult(null);
     setRotation(nextRotation);
 
-    timeoutRef.current = window.setTimeout(() => {
-      const choice = dinnerOptions[selectedIndex];
-      setResult(choice);
+    timeoutRef.current = setTimeout(() => {
+      setResult(targetSlice.label);
       setSpinning(false);
 
-      if (typeof window !== "undefined") {
-        confetti({
-          particleCount: 60,
-          spread: 70,
-          colors: ["#f97316", "#facc15", "#fecdd3"],
-        });
-      }
+      confetti({
+        particleCount: 60,
+        spread: 70,
+        colors: ["#f97316", "#facc15", "#fecdd3"],
+      });
     }, spinDuration);
   };
 
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current);
+        clearTimeout(timeoutRef.current);
       }
     };
   }, []);
@@ -91,7 +104,7 @@ export default function DinnerWheel() {
       </div>
 
       <OptionWheel
-        options={dinnerOptions}
+        slices={slices}
         rotation={rotation}
         palette={dinnerPalette}
         pointerColor="#f97316"
@@ -101,7 +114,7 @@ export default function DinnerWheel() {
 
       <div className="mt-6 text-center">
         {spinning && !result && (
-          <p className="text-sm font-medium text-orange-700 animate-pulse">
+          <p className="animate-pulse text-sm font-medium text-orange-700">
             Spinning for tonight&apos;s treat...
           </p>
         )}
