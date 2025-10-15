@@ -128,14 +128,25 @@ export default function ComplimentCamera() {
     }
 
     if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      videoRef.current.setAttribute("playsinline", "true");
+      const videoElement = videoRef.current;
+      videoElement.srcObject = stream;
+      videoElement.setAttribute("playsinline", "true");
       streamRef.current = stream;
 
-      try {
-        await videoRef.current.play();
-      } catch (error) {
-        console.error("Error starting video playback:", error);
+      const attemptPlay = async () => {
+        try {
+          await videoElement.play();
+        } catch (error) {
+          console.error("Error starting video playback:", error);
+        }
+      };
+
+      if (videoElement.readyState >= 2) {
+        attemptPlay();
+      } else {
+        videoElement.onloadedmetadata = () => {
+          attemptPlay();
+        };
       }
 
       setIsCameraOpen(true);
