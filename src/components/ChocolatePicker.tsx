@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Candy } from "lucide-react";
 import confetti from "canvas-confetti";
-import { OptionWheel } from "@/components/OptionWheel";
+import { OptionWheel, WheelSegment, createWheelSlices } from "@/components/OptionWheel";
 
-const chocolateOptions = [
-  "Smooth Milk",
-  "Twix",
-  "Wafers",
-  "M&M",
-  "Hello Panda",
-  "Hershey's",
+const chocolateSegments: WheelSegment[] = [
+  { label: "Smooth Milk" },
+  { label: "Twix" },
+  { label: "Wafers" },
+  { label: "M&M" },
+  { label: "Hello Panda" },
+  { label: "Hershey's" },
 ];
 
 const chocolatePalette = [
@@ -31,20 +31,36 @@ export default function ChocolatePicker() {
   const [rotation, setRotation] = useState(0);
   const [picking, setPicking] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const timeoutRef = useRef<number>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const slices = useMemo(() => createWheelSlices(chocolateSegments), []);
+  const totalWeight = useMemo(
+    () => slices.reduce((sum, slice) => sum + slice.weight, 0),
+    [slices],
+  );
 
   const startPicking = () => {
-    if (picking) {
+    if (picking || slices.length === 0) {
       return;
     }
 
-    const segmentAngle = 360 / chocolateOptions.length;
-    const selectedIndex = Math.floor(Math.random() * chocolateOptions.length);
-    const targetCenter = selectedIndex * segmentAngle + segmentAngle / 2;
-    const currentNormalized = ((rotation % 360) + 360) % 360;
-    const desiredNormalized = (360 - targetCenter + 360) % 360;
+    const randomValue = Math.random() * totalWeight;
+    let cumulative = 0;
+    let chosenIndex = slices.length - 1;
 
+    for (let index = 0; index < slices.length; index += 1) {
+      cumulative += slices[index].weight;
+      if (randomValue <= cumulative) {
+        chosenIndex = index;
+        break;
+      }
+    }
+
+    const targetSlice = slices[chosenIndex];
+    const currentNormalized = ((rotation % 360) + 360) % 360;
+    const desiredNormalized = (360 - targetSlice.centerAngle + 360) % 360;
     let delta = desiredNormalized - currentNormalized;
+
     if (delta <= 0) {
       delta += 360;
     }
@@ -53,32 +69,29 @@ export default function ChocolatePicker() {
     const nextRotation = rotation + extraSpins * 360 + delta;
 
     if (timeoutRef.current) {
-      window.clearTimeout(timeoutRef.current);
+      clearTimeout(timeoutRef.current);
     }
 
     setPicking(true);
     setSelected(null);
     setRotation(nextRotation);
 
-    timeoutRef.current = window.setTimeout(() => {
-      const choice = chocolateOptions[selectedIndex];
-      setSelected(choice);
+    timeoutRef.current = setTimeout(() => {
+      setSelected(targetSlice.label);
       setPicking(false);
 
-      if (typeof window !== "undefined") {
-        confetti({
-          particleCount: 55,
-          spread: 65,
-          colors: ["#d8b4fe", "#f9a8d4", "#fde68a"],
-        });
-      }
+      confetti({
+        particleCount: 55,
+        spread: 65,
+        colors: ["#d8b4fe", "#f9a8d4", "#fde68a"],
+      });
     }, spinDuration);
   };
 
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current);
+        clearTimeout(timeoutRef.current);
       }
     };
   }, []);
@@ -91,7 +104,7 @@ export default function ChocolatePicker() {
       </div>
 
       <OptionWheel
-        options={chocolateOptions}
+        slices={slices}
         rotation={rotation}
         palette={chocolatePalette}
         pointerColor="#a855f7"
@@ -101,7 +114,7 @@ export default function ChocolatePicker() {
 
       <div className="mt-6 text-center">
         {picking && !selected && (
-          <p className="text-sm font-medium text-purple-700 animate-pulse">
+          <p className="animate-pulse text-sm font-medium text-purple-700">
             Picking the sweetest treat...
           </p>
         )}
