@@ -112,7 +112,7 @@ export default function DinnerWheel() {
         size={280}
       />
 
-      <div className="mt-6 text-center">
+      <div className="text-center">
         {spinning && !result && (
           <p className="animate-pulse text-sm font-medium text-orange-700">
             Spinning for tonight&apos;s treat...
