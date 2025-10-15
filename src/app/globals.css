@@ -155,6 +155,14 @@ nextjs-portal {
 }
 
 @layer components {
+  .option-wheel-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    width: 100%;
+  }
+
   .option-wheel-container {
     position: relative;
     display: flex;
@@ -166,15 +174,15 @@ nextjs-portal {
 
   .option-wheel-pointer {
     position: absolute;
-    top: -1.25rem;
+    top: -1.15rem;
     left: 50%;
     transform: translateX(-50%);
     width: 0;
     height: 0;
-    border-left: 0.75rem solid transparent;
-    border-right: 0.75rem solid transparent;
-    border-bottom: 1.5rem solid var(--pointer-color, #fb923c);
-    filter: drop-shadow(0 0.5rem 0.75rem rgba(0, 0, 0, 0.2));
+    border-left: 0.7rem solid transparent;
+    border-right: 0.7rem solid transparent;
+    border-bottom: 1.4rem solid var(--pointer-color, #fb923c);
+    filter: drop-shadow(0 0.5rem 0.75rem rgba(0, 0, 0, 0.18));
     z-index: 5;
   }
 
@@ -184,14 +192,14 @@ nextjs-portal {
     height: var(--wheel-size, 240px);
     border-radius: 9999px;
     background: conic-gradient(from -90deg, var(--wheel-gradient));
-    box-shadow: 0 1.5rem 3.5rem rgba(31, 41, 55, 0.18);
+    box-shadow: 0 1.4rem 3.2rem rgba(31, 41, 55, 0.18);
     transition: transform 3.2s cubic-bezier(0.22, 0.61, 0.36, 1);
     display: flex;
     align-items: center;
     justify-content: center;
     transform: rotate(var(--wheel-rotation, 0deg));
     overflow: hidden;
-    --label-distance: calc(var(--wheel-size, 240px) * 0.42);
+    --label-distance: calc(var(--wheel-size, 240px) * 0.36);
   }
 
   .option-wheel-disc::before {
@@ -199,7 +207,7 @@ nextjs-portal {
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    border: 0.25rem solid rgba(255, 255, 255, 0.4);
+    border: 0.22rem solid rgba(255, 255, 255, 0.42);
     pointer-events: none;
     z-index: 1;
   }
@@ -211,8 +219,8 @@ nextjs-portal {
     pointer-events: none;
     background: repeating-conic-gradient(
       from -90deg,
-      transparent 0deg calc(360deg / var(--divider-count, 1) - 1deg),
-      rgba(255, 255, 255, 0.45) calc(360deg / var(--divider-count, 1) - 1deg) calc(360deg / var(--divider-count, 1))
+      transparent 0deg calc(360deg / var(--divider-count, 1) - 1.5deg),
+      rgba(255, 255, 255, 0.45) calc(360deg / var(--divider-count, 1) - 1.5deg) calc(360deg / var(--divider-count, 1))
     );
     mix-blend-mode: overlay;
     z-index: 2;
@@ -247,39 +255,85 @@ nextjs-portal {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.4rem 0.9rem;
+    padding: 0.28rem 0.58rem;
     border-radius: 9999px;
     background: rgba(255, 255, 255, 0.92);
     color: var(--wheel-text-color, #374151);
-    font-size: 0.9rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    line-height: 1.15;
-    max-width: 9.5rem;
+    line-height: 1.1;
+    max-width: 7.5rem;
     text-align: center;
-    box-shadow: 0 0.65rem 1.8rem rgba(17, 24, 39, 0.18);
+    letter-spacing: 0.01em;
+    box-shadow: 0 0.55rem 1.6rem rgba(17, 24, 39, 0.16);
     transform: translate(-50%, -50%) translateY(calc(-1 * var(--label-distance))) rotate(calc(-1 * var(--label-angle, 0deg)));
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(6px);
+  }
+
+  .option-wheel-legend {
+    display: grid;
+    gap: 0.75rem;
+    width: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+
+  .option-wheel-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 0.45rem 1.4rem rgba(15, 23, 42, 0.12);
+  }
+
+  .option-wheel-legend-swatch {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 9999px;
+    background: var(--legend-color, #ffffff);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.75), inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  }
+
+  .option-wheel-legend-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--wheel-text-color, #374151);
+    text-align: left;
   }
 
   @media (max-width: 768px) {
     .option-wheel-pointer {
-      top: -1rem;
-      border-left-width: 0.6rem;
-      border-right-width: 0.6rem;
-      border-bottom-width: 1.1rem;
+      top: -0.95rem;
+      border-left-width: 0.55rem;
+      border-right-width: 0.55rem;
+      border-bottom-width: 1rem;
     }
 
     .option-wheel-disc {
       width: var(--wheel-size, 200px);
       height: var(--wheel-size, 200px);
-      box-shadow: 0 1rem 2.5rem rgba(31, 41, 55, 0.15);
-      --label-distance: calc(var(--wheel-size, 200px) * 0.4);
+      box-shadow: 0 0.95rem 2.2rem rgba(31, 41, 55, 0.16);
+      --label-distance: calc(var(--wheel-size, 200px) * 0.34);
     }
 
     .option-wheel-text {
-      font-size: 0.78rem;
-      padding: 0.32rem 0.62rem;
-      max-width: 7.5rem;
+      font-size: 0.62rem;
+      padding: 0.25rem 0.5rem;
+      max-width: 6.5rem;
+    }
+
+    .option-wheel-legend {
+      gap: 0.6rem;
+    }
+
+    .option-wheel-legend-item {
+      padding: 0.3rem 0.6rem;
+    }
+
+    .option-wheel-legend-label {
+      font-size: 0.64rem;
     }
   }
 }
