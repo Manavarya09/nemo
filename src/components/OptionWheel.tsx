@@ -22,6 +22,7 @@ type OptionWheelProps = {
   pointerColor: string;
   labelColor: string;
   size?: number;
+  showLegend?: boolean;
 };
 
 export function createWheelSlices(segments: WheelSegment[]): WheelSlice[] {
@@ -47,7 +48,7 @@ export function createWheelSlices(segments: WheelSegment[]): WheelSlice[] {
     currentAngle = endAngle;
 
     return {
-      label: segment.label,
+      label: segment.label.trim(),
       weight: segment.weight,
       startAngle,
       endAngle,
@@ -59,7 +60,12 @@ export function createWheelSlices(segments: WheelSegment[]): WheelSlice[] {
   lastSlice.endAngle = 360;
   lastSlice.centerAngle = (lastSlice.startAngle + lastSlice.endAngle) / 2;
 
-  return slices;
+  return slices.map((slice) => ({
+    ...slice,
+    startAngle: Number(slice.startAngle.toFixed(2)),
+    endAngle: Number(slice.endAngle.toFixed(2)),
+    centerAngle: Number(slice.centerAngle.toFixed(2)),
+  }));
 }
 
 export function OptionWheel({
@@ -69,6 +75,7 @@ export function OptionWheel({
   pointerColor,
   labelColor,
   size = 240,
+  showLegend = true,
 }: OptionWheelProps) {
   const gradientStops = useMemo(() => {
     if (slices.length === 0) {
@@ -95,24 +102,48 @@ export function OptionWheel({
   } as CSSProperties;
 
   return (
-    <div className="option-wheel-container" aria-hidden>
-      <div className="option-wheel-pointer" style={pointerStyle} />
-      <div className="option-wheel-disc" style={wheelStyle}>
-        <div
-          className="option-wheel-divider"
-          style={{ "--divider-count": Math.max(slices.length, 1) } as CSSProperties}
-        />
-        <div className="option-wheel-center" />
-        {slices.map((slice, index) => (
+    <div className="option-wheel-stack">
+      <div className="option-wheel-container" aria-hidden={slices.length === 0}>
+        <div className="option-wheel-pointer" style={pointerStyle} />
+        <div className="option-wheel-disc" style={wheelStyle}>
           <div
-            key={`${slice.label}-${index}`}
-            className="option-wheel-label"
-            style={{ "--label-angle": `${slice.centerAngle}deg` } as CSSProperties}
-          >
-            <span className="option-wheel-text">{slice.label}</span>
-          </div>
-        ))}
+            className="option-wheel-divider"
+            style={{ "--divider-count": Math.max(slices.length, 1) } as CSSProperties}
+          />
+          <div className="option-wheel-center" />
+          {slices.map((slice, index) => (
+            <div
+              key={`${slice.label}-${index}`}
+              className="option-wheel-label"
+              style={{ "--label-angle": `${slice.centerAngle}deg` } as CSSProperties}
+            >
+              <span className="option-wheel-text">{slice.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
+
+      {showLegend && slices.length > 0 && (
+        <div className="option-wheel-legend" role="list">
+          {slices.map((slice, index) => {
+            const color = palette[index % palette.length];
+            return (
+              <div
+                key={`legend-${slice.label}-${index}`}
+                className="option-wheel-legend-item"
+                role="listitem"
+                style={{ "--wheel-text-color": labelColor } as CSSProperties}
+              >
+                <span
+                  className="option-wheel-legend-swatch"
+                  style={{ "--legend-color": color } as CSSProperties}
+                />
+                <span className="option-wheel-legend-label">{slice.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
