@@ -2,8 +2,21 @@
 
 import { CSSProperties, useMemo } from "react";
 
+export type WheelSegment = {
+  label: string;
+  weight?: number;
+};
+
+export type WheelSlice = {
+  label: string;
+  weight: number;
+  startAngle: number;
+  endAngle: number;
+  centerAngle: number;
+};
+
 type OptionWheelProps = {
-  options: string[];
+  slices: WheelSlice[];
   rotation: number;
   palette: string[];
   pointerColor: string;
@@ -11,8 +24,46 @@ type OptionWheelProps = {
   size?: number;
 };
 
+export function createWheelSlices(segments: WheelSegment[]): WheelSlice[] {
+  const sanitized = segments
+    .map((segment) => ({
+      label: segment.label,
+      weight: Math.max(segment.weight ?? 1, 0),
+    }))
+    .filter((segment) => segment.weight > 0);
+
+  if (sanitized.length === 0) {
+    return [];
+  }
+
+  const totalWeight = sanitized.reduce((sum, segment) => sum + segment.weight, 0);
+
+  let currentAngle = 0;
+  const slices: WheelSlice[] = sanitized.map((segment) => {
+    const angle = (segment.weight / totalWeight) * 360;
+    const startAngle = currentAngle;
+    const endAngle = currentAngle + angle;
+    const centerAngle = startAngle + angle / 2;
+    currentAngle = endAngle;
+
+    return {
+      label: segment.label,
+      weight: segment.weight,
+      startAngle,
+      endAngle,
+      centerAngle,
+    };
+  });
+
+  const lastSlice = slices[slices.length - 1];
+  lastSlice.endAngle = 360;
+  lastSlice.centerAngle = (lastSlice.startAngle + lastSlice.endAngle) / 2;
+
+  return slices;
+}
+
 export function OptionWheel({
-  options,
+  slices,
   rotation,
   palette,
   pointerColor,
@@ -20,30 +71,17 @@ export function OptionWheel({
   size = 240,
 }: OptionWheelProps) {
   const gradientStops = useMemo(() => {
-    if (options.length === 0) {
+    if (slices.length === 0) {
       return "#ffffff 0deg 360deg";
     }
 
-    const segmentAngle = 360 / options.length;
-
-    return options
-      .map((_, index) => {
-        const start = index * segmentAngle;
-        const end = (index + 1) * segmentAngle;
+    return slices
+      .map((slice, index) => {
         const color = palette[index % palette.length];
-        return `${color} ${start}deg ${end}deg`;
+        return `${color} ${slice.startAngle}deg ${slice.endAngle}deg`;
       })
       .join(", ");
-  }, [options, palette]);
-
-  const labelAngles = useMemo(() => {
-    if (options.length === 0) {
-      return [];
-    }
-
-    const segmentAngle = 360 / options.length;
-    return options.map((_, index) => index * segmentAngle + segmentAngle / 2);
-  }, [options]);
+  }, [slices, palette]);
 
   const wheelStyle: CSSProperties = {
     "--wheel-rotation": `${rotation}deg`,
@@ -57,17 +95,21 @@ export function OptionWheel({
   } as CSSProperties;
 
   return (
-    <div className="option-wheel-container">
+    <div className="option-wheel-container" aria-hidden>
       <div className="option-wheel-pointer" style={pointerStyle} />
       <div className="option-wheel-disc" style={wheelStyle}>
+        <div
+          className="option-wheel-divider"
+          style={{ "--divider-count": Math.max(slices.length, 1) } as CSSProperties}
+        />
         <div className="option-wheel-center" />
-        {options.map((label, index) => (
+        {slices.map((slice, index) => (
           <div
-            key={`${label}-${index}`}
+            key={`${slice.label}-${index}`}
             className="option-wheel-label"
-            style={{ "--label-angle": `${labelAngles[index]}deg` } as CSSProperties}
+            style={{ "--label-angle": `${slice.centerAngle}deg` } as CSSProperties}
           >
-            <span className="option-wheel-text">{label}</span>
+            <span className="option-wheel-text">{slice.label}</span>
           </div>
         ))}
       </div>
