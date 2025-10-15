@@ -109,7 +109,7 @@ export default function DinnerWheel() {
         palette={dinnerPalette}
         pointerColor="#f97316"
         labelColor="#7c3412"
-        size={260}
+        size={280}
       />
 
       <div className="mt-6 text-center">
