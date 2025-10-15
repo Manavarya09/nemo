@@ -1,71 +1,130 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Coffee } from "lucide-react";
 import confetti from "canvas-confetti";
+import { OptionWheel } from "@/components/OptionWheel";
 
-const drinks = [
+const drinkOptions = [
   "Sprite",
   "Blue Sprite",
-  "Normal Sprite",
   "Sprite Zero",
+  "Sprite Ice",
   "7Up",
+  "Lemonade",
 ];
 
+const drinkPalette = [
+  "#bae6fd",
+  "#22d3ee",
+  "#99f6e4",
+  "#0ea5e9",
+  "#c8f5d8",
+  "#38bdf8",
+];
+
+const spinDuration = 3200;
+
 export default function DrinkSelector() {
-  const [selected, setSelected] = useState("");
+  const [rotation, setRotation] = useState(0);
   const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  const timeoutRef = useRef<number>();
 
-  const selectDrink = () => {
+  const startSelecting = () => {
+    if (selecting) {
+      return;
+    }
+
+    const segmentAngle = 360 / drinkOptions.length;
+    const selectedIndex = Math.floor(Math.random() * drinkOptions.length);
+    const targetCenter = selectedIndex * segmentAngle + segmentAngle / 2;
+    const currentNormalized = ((rotation % 360) + 360) % 360;
+    const desiredNormalized = (360 - targetCenter + 360) % 360;
+
+    let delta = desiredNormalized - currentNormalized;
+    if (delta <= 0) {
+      delta += 360;
+    }
+
+    const extraSpins = 4 + Math.floor(Math.random() * 3);
+    const nextRotation = rotation + extraSpins * 360 + delta;
+
+    if (timeoutRef.current) {
+      window.clearTimeout(timeoutRef.current);
+    }
+
     setSelecting(true);
-    setSelected("");
+    setSelected(null);
+    setRotation(nextRotation);
 
-    setTimeout(() => {
-      const choice = drinks[Math.floor(Math.random() * drinks.length)];
+    timeoutRef.current = window.setTimeout(() => {
+      const choice = drinkOptions[selectedIndex];
       setSelected(choice);
       setSelecting(false);
-      confetti({
-        particleCount: 30,
-        spread: 40,
-        colors: ['#c8e6f5', '#c8f5d8', '#ffffff']
-      });
-    }, 1500);
+
+      if (typeof window !== "undefined") {
+        confetti({
+          particleCount: 45,
+          spread: 60,
+          colors: ["#22d3ee", "#0ea5e9", "#c8f5d8"],
+        });
+      }
+    }, spinDuration);
   };
 
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <Card className="p-6 bg-gradient-to-br from-cyan-50 to-blue-50 border-2 border-cyan-200">
-      <div className="flex items-center gap-2 mb-4">
-        <Coffee className="w-6 h-6 text-cyan-500" />
+    <Card className="rounded-3xl border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 to-blue-50 p-6 shadow-md">
+      <div className="mb-4 flex items-center gap-2">
+        <Coffee className="h-6 w-6 text-cyan-500" />
         <h3 className="text-lg font-semibold text-cyan-900">Drink Selector</h3>
       </div>
 
-      <div className="text-center mb-4">
-        {selecting ? (
-          <div className="text-4xl animate-bounce">🥤</div>
-        ) : selected ? (
-          <div>
-            <div className="text-3xl mb-2 animate-bounce">🥤</div>
-            <div className="text-xl font-semibold text-cyan-800 mb-2">{selected}</div>
-            <p className="text-sm text-cyan-700 font-medium">
+      <OptionWheel
+        options={drinkOptions}
+        rotation={rotation}
+        palette={drinkPalette}
+        pointerColor="#06b6d4"
+        labelColor="#0f3b4c"
+        size={240}
+      />
+
+      <div className="mt-6 text-center">
+        {selecting && !selected && (
+          <p className="text-sm font-medium text-cyan-700 animate-pulse">
+            Shaking up something refreshing...
+          </p>
+        )}
+
+        {selected && (
+          <div className="space-y-2">
+            <p className="text-2xl font-semibold text-cyan-900">{selected}</p>
+            <p className="text-sm font-medium text-cyan-700">
               Refreshing choice ✨ stay bubbly!
             </p>
           </div>
-        ) : (
-          <div className="text-4xl text-cyan-300">💧</div>
         )}
       </div>
 
       <Button
-        onClick={selectDrink}
+        onClick={startSelecting}
         disabled={selecting}
-        className="w-full bg-cyan-400 hover:bg-cyan-500 text-white"
+        className="mt-6 w-full bg-cyan-400 text-white hover:bg-cyan-500 disabled:opacity-60"
       >
-        {selecting ? "Selecting..." : "Pick My Drink!"}
+        {selecting ? "Spinning..." : "Pick My Drink!"}
       </Button>
 
-      <p className="text-xs text-center mt-3 text-cyan-600">
+      <p className="mt-3 text-center text-xs text-cyan-600">
         Quench your thirst! 💫
       </p>
     </Card>
