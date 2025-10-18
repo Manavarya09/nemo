@@ -14,6 +14,7 @@ import SleepTracker from "@/components/SleepTracker";
 import GratitudeJournal from "@/components/GratitudeJournal";
 import ComplimentCamera from "@/components/ComplimentCamera";
 import CycleTracker from "@/components/CycleTracker";
+import FooterEasterEgg from "@/components/FooterEasterEgg";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, Sparkles, Utensils, TrendingUp, Flower2 } from "lucide-react";
 
@@ -78,6 +79,7 @@ export default function Home() {
             Made with 💖 for Kittu
           </p>
         </div>
+        <FooterEasterEgg />
       </div>
     </div>
   );
