@@ -17,7 +17,11 @@ export default function HydrationTracker() {
   const [glasses, setGlasses] = useState(0);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [reminderTimeout, setReminderTimeout] = useState<number | null>(null);
-  const goal = 8;
+  const [goalUnits, setGoalUnits] = useState<number>(() => {
+    const saved = Number(localStorage.getItem("hydrationGoalUnits") || 5);
+    return saved >= 4 && saved <= 12 ? saved : 5;
+  });
+  const unitMl = 500;
 
   useEffect(() => {
     // Load saved data
@@ -44,7 +48,7 @@ export default function HydrationTracker() {
 
     // Schedule next reminder
     const delayMs = intervalHours * 60 * 60 * 1000;
-    const timeoutId = scheduleNotification("hydration", delayMs, goal - glasses);
+    const timeoutId = scheduleNotification("hydration", delayMs, goalUnits - glasses);
     setReminderTimeout(timeoutId);
 
     // Schedule the next one after this
@@ -54,12 +58,12 @@ export default function HydrationTracker() {
   };
 
   const addGlass = () => {
-    const newCount = Math.min(glasses + 1, 12);
+    const newCount = Math.min(glasses + 1, 50);
     setGlasses(newCount);
     localStorage.setItem("hydrationGlasses", newCount.toString());
 
     // Send encouragement when goal is reached
-    if (newCount === goal && notificationsEnabled) {
+    if (newCount === goalUnits && notificationsEnabled) {
       const config = {
         title: "🎉 Hydration Goal Reached!",
         body: "You did it! You're staying beautifully hydrated 💧",
@@ -129,13 +133,14 @@ export default function HydrationTracker() {
       </div>
 
       <div className="text-center mb-4">
-        <div className="text-5xl font-bold text-blue-600 mb-2">{glasses}</div>
-        <p className="text-sm text-blue-500">
-          {glasses >= goal ? "Goal reached! 🎉" : `${goal - glasses} more to go`}
+        <div className="text-5xl font-bold text-blue-600 mb-1">{(glasses * unitMl) / 1000}L</div>
+        <p className="text-xs text-blue-500">{unitMl} ml per tab</p>
+        <p className="text-sm text-blue-500 mt-1">
+          {glasses >= goalUnits ? "Goal reached! 🎉" : `${(goalUnits - glasses) * unitMl} ml to go`}
         </p>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-1">
         <Button
           onClick={removeGlass}
           disabled={glasses === 0}
@@ -149,19 +154,42 @@ export default function HydrationTracker() {
           className="flex-1 bg-blue-400 hover:bg-blue-500 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Add Glass
+          Add 500 ml
         </Button>
       </div>
 
-      <div className="flex gap-1">
-        {Array.from({ length: goal }).map((_, i) => (
-          <div
-            key={i}
-            className={`flex-1 h-2 rounded-full ${
-              i < glasses ? "bg-blue-400" : "bg-blue-100"
-            }`}
-          />
-        ))}
+      <div className="mb-3">
+        <div className="flex gap-1">
+          {Array.from({ length: Math.max(goalUnits, glasses || 0) }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-3 flex-1 rounded-full ${i < glasses ? "bg-blue-400" : "bg-blue-100"}`}
+              title={`${(i + 1) * unitMl} ml`}
+            />
+          ))}
+        </div>
+        <div className="mt-2 flex items-center justify-center gap-2">
+          <button
+            onClick={() => {
+              const next = 4;
+              setGoalUnits(next);
+              localStorage.setItem("hydrationGoalUnits", String(next));
+            }}
+            className={`text-xs px-2 py-1 rounded-md border ${goalUnits === 4 ? "bg-blue-100 border-blue-300 text-blue-700" : "border-blue-200 text-blue-600 hover:bg-blue-50"}`}
+          >
+            4 tabs
+          </button>
+          <button
+            onClick={() => {
+              const next = 5;
+              setGoalUnits(next);
+              localStorage.setItem("hydrationGoalUnits", String(next));
+            }}
+            className={`text-xs px-2 py-1 rounded-md border ${goalUnits === 5 ? "bg-blue-100 border-blue-300 text-blue-700" : "border-blue-200 text-blue-600 hover:bg-blue-50"}`}
+          >
+            5 tabs
+          </button>
+        </div>
       </div>
 
       {notificationsEnabled && (
