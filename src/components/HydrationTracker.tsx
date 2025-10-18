@@ -17,10 +17,7 @@ export default function HydrationTracker() {
   const [glasses, setGlasses] = useState(0);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [reminderTimeout, setReminderTimeout] = useState<number | null>(null);
-  const [goalUnits, setGoalUnits] = useState<number>(() => {
-    const saved = Number(localStorage.getItem("hydrationGoalUnits") || 5);
-    return saved >= 4 && saved <= 12 ? saved : 5;
-  });
+  const [goalUnits, setGoalUnits] = useState<number>(5);
   const unitMl = 500;
 
   useEffect(() => {
