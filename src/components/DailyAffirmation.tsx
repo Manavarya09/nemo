@@ -15,6 +15,16 @@ const affirmations = [
   "You are enough, just as you are 💝",
   "Your kindness makes a difference 🦋",
   "You are loved beyond measure 💗",
+  "Soft heart, strong soul. You are magic ✨🥰",
+  "You are someone’s favorite person in the whole world 💓",
+  "Tiny steps count too. I’m proud of you 🌈",
+  "You’re a warm cup of tea on a rainy day ☕🌧️",
+  "The universe smiles when you do 🌙💫",
+  "Your laugh is my favorite sound 🎀",
+  "You deserve gentle days and sweet sunsets 🌅💗",
+  "You’re a garden in full bloom today 🌷",
+  "You make ordinary moments feel special ✨",
+  "You are loved, safe, and held 🌼",
 ];
 
 export default function DailyAffirmation() {

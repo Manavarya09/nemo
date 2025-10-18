@@ -78,25 +78,79 @@ export default function ComplimentCamera() {
 
   const openCamera = async () => {
     setCameraError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: "user",
+
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      const message = "Camera access is not supported on this device or browser.";
+      setCameraError(message);
+      toast.error(message);
+      return;
+    }
+
+    stopCamera();
+
+    const constraintsList: MediaStreamConstraints[] = [
+      {
+        video: {
+          facingMode: { ideal: "user" },
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 720 },
         },
         audio: false,
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setIsCameraOpen(true);
+      },
+      {
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      },
+      { video: true, audio: false },
+    ];
+
+    let stream: MediaStream | null = null;
+    let lastError: unknown;
+
+    for (const constraints of constraintsList) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        break;
+      } catch (error) {
+        lastError = error;
       }
-    } catch (error) {
-      console.error("Error accessing camera:", error);
+    }
+
+    if (!stream) {
+      console.error("Error accessing camera:", lastError);
       setCameraError("Unable to access camera. Please check permissions and try again.");
       toast.error("Camera access denied");
+      return;
+    }
+
+    if (videoRef.current) {
+      const videoElement = videoRef.current;
+      videoElement.srcObject = stream;
+      videoElement.setAttribute("playsinline", "true");
+      streamRef.current = stream;
+
+      const attemptPlay = async () => {
+        try {
+          await videoElement.play();
+        } catch (error) {
+          console.error("Error starting video playback:", error);
+        }
+      };
+
+      if (videoElement.readyState >= 2) {
+        attemptPlay();
+      } else {
+        videoElement.onloadedmetadata = () => {
+          attemptPlay();
+        };
+      }
+
+      setIsCameraOpen(true);
+      setCameraError(null);
     }
   };
 
@@ -145,6 +199,9 @@ export default function ComplimentCamera() {
           origin: { y: 0.6 },
           colors: ['#f4a6c8', '#e8d5f2', '#c8e6f5', '#ffd4a3']
         });
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("celebrate"));
+        }
       }
       
       setTimeout(() => setIsSnapping(false), 100);
@@ -177,6 +234,9 @@ export default function ComplimentCamera() {
           origin: { y: 0.6 },
           colors: ['#f4a6c8', '#e8d5f2']
         });
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("celebrate"));
+        }
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || "Failed to save photo");

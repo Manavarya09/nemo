@@ -4,6 +4,8 @@ import Greeting from "@/components/Greeting";
 import HydrationTracker from "@/components/HydrationTracker";
 import MoodTracker from "@/components/MoodTracker";
 import FastingTimer from "@/components/FastingTimer";
+import MascotBuddy from "@/components/MascotBuddy";
+import FirefliesOverlay from "@/components/FirefliesOverlay";
 import DailyAffirmation from "@/components/DailyAffirmation";
 import MedicineReminder from "@/components/MedicineReminder";
 import DinnerWheel from "@/components/DinnerWheel";
@@ -14,10 +16,18 @@ import SleepTracker from "@/components/SleepTracker";
 import GratitudeJournal from "@/components/GratitudeJournal";
 import ComplimentCamera from "@/components/ComplimentCamera";
 import CycleTracker from "@/components/CycleTracker";
+import FooterEasterEgg from "@/components/FooterEasterEgg";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, Sparkles, Utensils, TrendingUp, Flower2 } from "lucide-react";
+import { useState } from "react";
 
 export default function Home() {
+  const [eggOpen, setEggOpen] = useState(false);
+
+  const triggerEgg = () => {
+    setEggOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 pb-8">
       <div className="max-w-md mx-auto px-4 py-6">
@@ -75,9 +85,12 @@ export default function Home() {
 
         <div className="mt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            Made with 💖 for Kittu
+            Made with 💖 for <a href="#" role="button" aria-label="Open sweet message" onClick={(e)=>{e.preventDefault();triggerEgg();}} className="cursor-pointer underline decoration-dotted text-primary hover:text-primary/80 focus:outline-none focus:ring-2 focus:ring-ring/50 rounded-sm px-1">Kittu</a>
           </p>
         </div>
+        <FooterEasterEgg show={eggOpen} onClose={()=>setEggOpen(false)} />
+        <MascotBuddy />
+        <FirefliesOverlay />
       </div>
     </div>
   );
