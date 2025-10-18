@@ -4,8 +4,6 @@ import Greeting from "@/components/Greeting";
 import HydrationTracker from "@/components/HydrationTracker";
 import MoodTracker from "@/components/MoodTracker";
 import FastingTimer from "@/components/FastingTimer";
-import BreathingFlower from "@/components/BreathingFlower";
-import LoveLetterNote from "@/components/LoveLetterNote";
 import MascotBuddy from "@/components/MascotBuddy";
 import FirefliesOverlay from "@/components/FirefliesOverlay";
 import DailyAffirmation from "@/components/DailyAffirmation";
@@ -60,8 +58,6 @@ export default function Home() {
 
           <TabsContent value="wellness" className="space-y-4 animate-fade-in">
             <DailyAffirmation />
-            <LoveLetterNote />
-            <BreathingFlower />
             <MoodTracker />
             <HydrationTracker />
             <MedicineReminder />
