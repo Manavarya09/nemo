@@ -92,7 +92,7 @@ export default function Home() {
             Made with 💖 for <a href="#" role="button" aria-label="Open sweet message" onClick={(e)=>{e.preventDefault();triggerEgg();}} className="cursor-pointer underline decoration-dotted text-primary hover:text-primary/80 focus:outline-none focus:ring-2 focus:ring-ring/50 rounded-sm px-1">Kittu</a>
           </p>
         </div>
-        <FooterEasterEgg show={eggOpen} />
+        <FooterEasterEgg show={eggOpen} onClose={()=>setEggOpen(false)} />
         <MascotBuddy />
         <FirefliesOverlay />
       </div>
