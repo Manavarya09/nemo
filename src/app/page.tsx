@@ -23,13 +23,9 @@ import { useState } from "react";
 
 export default function Home() {
   const [eggOpen, setEggOpen] = useState(false);
-  const [eggTimer, setEggTimer] = useState<NodeJS.Timeout | null>(null);
 
   const triggerEgg = () => {
     setEggOpen(true);
-    if (eggTimer) clearTimeout(eggTimer);
-    const t = setTimeout(() => setEggOpen(false), 4500);
-    setEggTimer(t);
   };
 
   return (
