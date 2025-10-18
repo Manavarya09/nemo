@@ -21,17 +21,22 @@ export default function HydrationTracker() {
   const unitMl = 500;
 
   useEffect(() => {
-    // Load saved data
+    if (typeof window === "undefined") return;
+
     const saved = localStorage.getItem("hydrationGlasses");
     if (saved) {
       setGlasses(parseInt(saved));
     }
 
-    // Check notification preferences
+    const savedGoal = localStorage.getItem("hydrationGoalUnits");
+    if (savedGoal) {
+      const n = Number(savedGoal);
+      if (!Number.isNaN(n)) setGoalUnits(Math.min(12, Math.max(4, n)));
+    }
+
     const prefs = getNotificationPreferences();
     setNotificationsEnabled(prefs.hydrationEnabled && areNotificationsEnabled());
 
-    // Set up recurring reminders if enabled
     if (prefs.hydrationEnabled && areNotificationsEnabled()) {
       scheduleHydrationReminders(prefs.hydrationInterval);
     }
