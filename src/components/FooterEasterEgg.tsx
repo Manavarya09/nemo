@@ -9,7 +9,7 @@ const messages = [
   "Small scroll, big love: you matter so much 💌",
 ];
 
-import LoveLetterNote from "@/components/LoveLetterNote";
+import LoveLetterCard from "@/components/LoveLetterCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Props = { show: boolean; onClose?: () => void };
@@ -17,11 +17,15 @@ type Props = { show: boolean; onClose?: () => void };
 export default function FooterEasterEgg({ show, onClose }: Props) {
   return (
     <Dialog open={show} onOpenChange={(open)=>{ if(!open) onClose?.(); }}>
-      <DialogContent className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200">
+      <DialogContent
+        className="bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50 border-2 border-pink-200"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
-          <DialogTitle className="text-yellow-900">A little love note 💛</DialogTitle>
+          <DialogTitle className="text-pink-900">A little love letter 💌</DialogTitle>
         </DialogHeader>
-        <LoveLetterNote />
+        <LoveLetterCard />
       </DialogContent>
     </Dialog>
   );
