@@ -23,6 +23,7 @@ type OptionWheelProps = {
   labelColor: string;
   size?: number;
   showLegend?: boolean;
+  renderLabels?: boolean;
 };
 
 export function createWheelSlices(segments: WheelSegment[]): WheelSlice[] {
@@ -75,7 +76,8 @@ export function OptionWheel({
   pointerColor,
   labelColor,
   size = 240,
-  showLegend = true,
+  showLegend = false,
+  renderLabels = false,
 }: OptionWheelProps) {
   const gradientStops = useMemo(() => {
     if (slices.length === 0) {
@@ -111,7 +113,7 @@ export function OptionWheel({
             style={{ "--divider-count": Math.max(slices.length, 1) } as CSSProperties}
           />
           <div className="option-wheel-center" />
-          {slices.map((slice, index) => (
+          {renderLabels && slices.map((slice, index) => (
             <div
               key={`${slice.label}-${index}`}
               className="option-wheel-label"
