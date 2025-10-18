@@ -9,28 +9,12 @@ const messages = [
   "Small scroll, big love: you matter so much 💌",
 ];
 
-export default function FooterEasterEgg() {
-  const [visible, setVisible] = useState(false);
-  const [text, setText] = useState(messages[0]);
+type Props = { show: boolean; message?: string };
 
-  useEffect(() => {
-    const maybeShow = () => {
-      if (Math.random() < 0.06) {
-        setText(messages[Math.floor(Math.random() * messages.length)]);
-        setVisible(true);
-        setTimeout(() => setVisible(false), 4500);
-      }
-    };
+export default function FooterEasterEgg({ show, message }: Props) {
+  if (!show) return null;
 
-    // Rare on load
-    maybeShow();
-
-    // Occasional during session
-    const id = setInterval(maybeShow, 120000);
-    return () => clearInterval(id);
-  }, []);
-
-  if (!visible) return null;
+  const text = message || messages[Math.floor(Math.random() * messages.length)];
 
   return (
     <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 select-none">
