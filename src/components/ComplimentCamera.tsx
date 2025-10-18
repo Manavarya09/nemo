@@ -199,6 +199,9 @@ export default function ComplimentCamera() {
           origin: { y: 0.6 },
           colors: ['#f4a6c8', '#e8d5f2', '#c8e6f5', '#ffd4a3']
         });
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("celebrate"));
+        }
       }
       
       setTimeout(() => setIsSnapping(false), 100);
@@ -231,6 +234,9 @@ export default function ComplimentCamera() {
           origin: { y: 0.6 },
           colors: ['#f4a6c8', '#e8d5f2']
         });
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("celebrate"));
+        }
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || "Failed to save photo");

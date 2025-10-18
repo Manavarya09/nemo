@@ -85,6 +85,9 @@ export default function DinnerWheel() {
         spread: 70,
         colors: ["#f97316", "#facc15", "#fecdd3"],
       });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("celebrate"));
+      }
     }, spinDuration);
   };
 

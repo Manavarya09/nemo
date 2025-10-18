@@ -4,6 +4,10 @@ import Greeting from "@/components/Greeting";
 import HydrationTracker from "@/components/HydrationTracker";
 import MoodTracker from "@/components/MoodTracker";
 import FastingTimer from "@/components/FastingTimer";
+import BreathingFlower from "@/components/BreathingFlower";
+import LoveLetterNote from "@/components/LoveLetterNote";
+import MascotBuddy from "@/components/MascotBuddy";
+import FirefliesOverlay from "@/components/FirefliesOverlay";
 import DailyAffirmation from "@/components/DailyAffirmation";
 import MedicineReminder from "@/components/MedicineReminder";
 import DinnerWheel from "@/components/DinnerWheel";
@@ -56,6 +60,8 @@ export default function Home() {
 
           <TabsContent value="wellness" className="space-y-4 animate-fade-in">
             <DailyAffirmation />
+            <LoveLetterNote />
+            <BreathingFlower />
             <MoodTracker />
             <HydrationTracker />
             <MedicineReminder />
@@ -87,10 +93,12 @@ export default function Home() {
 
         <div className="mt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            Made with 💖 for <a href="#" onClick={(e)=>{e.preventDefault();triggerEgg();}} className="underline decoration-dotted text-primary hover:text-primary/80 focus:outline-none focus:ring-2 focus:ring-ring/50 rounded-sm px-1">Kittu</a>
+            Made with 💖 for <a href="#" role="button" aria-label="Open sweet message" onClick={(e)=>{e.preventDefault();triggerEgg();}} className="cursor-pointer underline decoration-dotted text-primary hover:text-primary/80 focus:outline-none focus:ring-2 focus:ring-ring/50 rounded-sm px-1">Kittu</a>
           </p>
         </div>
         <FooterEasterEgg show={eggOpen} />
+        <MascotBuddy />
+        <FirefliesOverlay />
       </div>
     </div>
   );

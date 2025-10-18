@@ -137,6 +137,9 @@ export default function CycleTracker() {
         setIsSetup(true);
         setShowEditSetup(false);
         toast.success("Cycle tracking updated! 🌸");
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("celebrate"));
+        }
         confetti({
           particleCount: 100,
           spread: 70,
@@ -194,6 +197,9 @@ export default function CycleTracker() {
       await fetchDailyLogs();
       setShowDailyLog(false);
       toast.success("Daily log saved! 💖");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("celebrate"));
+      }
       confetti({
         particleCount: 50,
         spread: 60,

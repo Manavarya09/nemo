@@ -85,6 +85,9 @@ export default function ChocolatePicker() {
         spread: 65,
         colors: ["#d8b4fe", "#f9a8d4", "#fde68a"],
       });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("celebrate"));
+      }
     }, spinDuration);
   };
 
